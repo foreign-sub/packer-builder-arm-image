@@ -172,6 +172,7 @@ func (b *Builder) Prepare(cfgs ...interface{}) ([]string, []string, error) {
 	if b.config.ImageType == "" {
 		// defaults...
 		b.config.ImageType = b.autoDetectType()
+		warnings = append(warnings, "detected " + b.config.ImageType)
 	} else {
 		if _, ok := knownTypes[b.config.ImageType]; !ok {
 
