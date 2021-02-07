@@ -28,12 +28,10 @@ RUN apt-get update -qq \
   sudo \
  && rm -rf /var/lib/apt/lists/*
 
-ENV PACKER_VERSION 1.5.2
-# use nightly release until packer 1.5.2 is released
+ENV PACKER_VERSION 1.6.0
 
-RUN wget https://github.com/hashicorp/packer/releases/download/nightly/packer_linux_amd64.zip -O /tmp/packer.zip && \
+RUN wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -O /tmp/packer.zip && \
   unzip /tmp/packer.zip -d /bin && \
-  mv /bin/pkg/packer_linux_amd64 /bin/packer && \
   rm /tmp/packer.zip
 WORKDIR /build
 COPY entrypoint.sh /entrypoint.sh

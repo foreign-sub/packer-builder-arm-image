@@ -13,11 +13,15 @@ const (
 	BeagleBone  KnownImageType = "beaglebone"
 	Kali        KnownImageType = "kali"
 	Debian      KnownImageType = "debian"
+	Unknown     KnownImageType = ""
 )
 
 
 func GuessImageType(url string) KnownImageType {
 	if strings.Contains(url, "raspbian") {
+		return RaspberryPi
+	}
+	if strings.Contains(url, "raspios") {
 		return RaspberryPi
 	}
 
