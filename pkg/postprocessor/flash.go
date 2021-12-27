@@ -1,4 +1,5 @@
-//go:generate mapstructure-to-hcl2 -type FlashConfig
+//go:generate go run github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc struct-markdown
+//go:generate go run github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc mapstructure-to-hcl2 -type FlashConfig
 
 package postprocessor
 
@@ -10,7 +11,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
-	"github.com/solo-io/packer-builder-arm-image/pkg/flasher"
+	"github.com/solo-io/packer-plugin-arm-image/pkg/flasher"
 )
 
 type FlashConfig struct {

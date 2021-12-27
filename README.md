@@ -18,29 +18,29 @@ The plugin runs the provisioners in a chroot environment.  Binary execution is d
 
 ## Dependencies:
 This builder uses the following shell commands:
-- `kpartx` - mapping the partitons to mountable devices
-- `qemu-user-static` - Executing arm binaries
+- `qemu-user-static` - Executing arm binaries. This is optional as the released binary can use embedded versions of `qemu-aarch64-static` and `qemu-arm-static`. If you have one installed, it will be used instead of the embedded ones.
+- `losetup` - To mount the image. This command is pre-installed in most distributions.
 
 To install the needed binaries on derivatives of the Debian Linux variant:
 ```shell
-sudo apt install kpartx qemu-user-static
+sudo apt install qemu-user-static
 ```
 
 Fedora:
 ```shell
-sudo dnf install kpartx qemu-user-static
+sudo dnf install qemu-user-static
 ```
 
 Archlinux:
 ```shell
-pacman -S qemu-arm-static multipath-tools
+pacman -S qemu-arm-static
 ```
 
 Other commands that are used are (that should already be installed) : mount, umount, cp, ls, chroot.
 
 To resize the filesystem, the following commands are used:
-- e2fsck
-- resize2fs
+- `e2fsck`
+- `resize2fs`
 
 To provide custom arguments to `qemu-arm-static` using the `qemu_args` config, `gcc` is required (to compile a C wrapper).
 
@@ -58,19 +58,20 @@ To use, you need to provide an existing image that we will then modify. We re-us
 for downloading ISOs (though the image should not be an ISO file).
 Supporting also zipped images (enabling you downloading official raspbian images directly).
 
-See [raspbian_golang.json](samples/raspbian_golang.json) and [builder.go](pkg/builder/builder.go) for details.
+See [raspbian_golang.json](samples/raspbian_golang.json) and [config.go](pkg/builder/config.go) for details.
+For configuration reference, see the [builder doc](docs/builders/arm-image.mdx).
 
 *Note* if your image is arm64, set `qemu_binary` to `qemu-aarch64-static` in your configuration json file.
 
 # Compiling and Testing
 ## Building
-As this tool performs low-level OS manipulations - consider using a VM to run this code for isolation. While this is highly recommended, it is not mandatory.
+As this tool performs low-level OS manipulations - consider using a VM to run this code for isolation. While this is recommended, it is not mandatory.
 
 This project uses [go modules](https://github.com/golang/go/wiki/Modules) for dependencies introduced in Go 1.11.
 To build:
 ```bash
-git clone https://github.com/solo-io/packer-builder-arm-image
-cd packer-builder-arm-image
+git clone https://github.com/solo-io/packer-plugin-arm-image
+cd packer-plugin-arm-image
 go mod download
 go build
 ```
@@ -82,8 +83,8 @@ custom provisions to build an image in an iterative fashion (thanks to @tommie-l
 To use the Vagrant environment, run the following commands:
 
 ```
-git clone https://github.com/solo-io/packer-builder-arm-image
-cd packer-builder-arm-image
+git clone https://github.com/solo-io/packer-plugin-arm-image
+cd packer-plugin-arm-image
 vagrant up
 ```
 
@@ -95,9 +96,15 @@ The example config produces an image with go installed and extends the filesyste
 
 That's it! Flash it and run!
 
+## Running with locally
+This builder requires root permissions as it performs low level machine operations. To run it locally,
+you can set `PACKER_CONFIG_DIR` back to your local home before sudo-ing to packer. For example:
+```
+PACKER_CONFIG_DIR=$HOME sudo -E $(which packer) build .
+```
 ## Running with Docker
 ### Prerequisites
-Your environment must be running docker daemon with the `devicemapper` [storage driver](https://docs.docker.com/storage/storagedriver/select-storage-driver/) as `kpartx` does not work with the newer `overlay2` prefferred driver. `devicemapper` is [not available on Docker for Mac / Windows](https://docs.docker.com/storage/storagedriver/select-storage-driver/#docker-desktop-for-mac-and-docker-desktop-for-windows).
+Docker needs capability of creating new devices on host machine, so it can create `/dev/loop*` and mount image into it. While it may be possible to accomplish with multiple `--device-cgroup-rule` and `--add-cap`, it's much easier to use `--privileged` flag to accomplish that. Even so, it is considered bad practice to do so, do it with extra precautions. Also because of those requirements rootless will not work for this container.
 
 ### Option 1: Clone this repo and build the Docker image locally
 
@@ -111,6 +118,7 @@ Build the `samples/raspbian_golang.json` Packer image
 docker run \
   --rm \
   --privileged \
+  -v /dev:/dev \
   -v ${PWD}:/build:ro \
   -v ${PWD}/packer_cache:/build/packer_cache \
   -v ${PWD}/output-arm-image:/build/output-arm-image \
@@ -119,18 +127,17 @@ docker run \
 ```
 
 ### Option 2: Run the published Docker image
-Alternatively, you can use the `docker.pkg.github.com/solo-io/packer-builder-arm-image/packer-builder-arm` that's built off latest master without needing to clone this repository.
+Alternatively, you can use the `ghcr.io/solo-io/packer-plugin-arm-image` that's built off latest master without needing to clone this repository.
 ```shell
 docker run \
   --rm \
   --privileged \
+  -v /dev:/dev \
   -v ${PWD}:/build:ro \
   -v ${PWD}/packer_cache:/build/packer_cache \
   -v ${PWD}/output-arm-image:/build/output-arm-image \
-  docker.pkg.github.com/solo-io/packer-builder-arm-image/packer-builder-arm build samples/raspbian_golang.json
+  ghcr.io/solo-io/packer-plugin-arm-image build samples/raspbian_golang.json
 ```
-
-Note: On every release docker images are published to `quay.io/solo-io/packer-builder-arm-image` as well (for example: `quay.io/solo-io/packer-builder-arm-image:v0.1.5`).
 
 That's it, flash it and run!
 

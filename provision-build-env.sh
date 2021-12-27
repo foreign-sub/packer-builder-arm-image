@@ -2,7 +2,7 @@
 #
 # @script          provision.sh
 # @description     provisioning script that builds environment for
-#                  https://github.com/solo-io/packer-builder-arm-image
+#                  https://github.com/solo-io/packer-plugin-arm-image
 #
 #                 By default, sets up environment, builds the plugin, and image
 ##
@@ -59,10 +59,10 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 # Download and install packer
 [[ -e /tmp/packer ]] && rm -rf /tmp/packer*
-wget https://releases.hashicorp.com/packer/1.5.2/packer_1.5.2_linux_amd64.zip \
-    -q -O /tmp/packer_1.5.2_linux_amd64.zip
+wget https://releases.hashicorp.com/packer/1.7.3/packer_1.7.3_linux_amd64.zip \
+    -q -O /tmp/packer_1.7.3_linux_amd64.zip
 cd /tmp
-unzip -u packer_1.5.2_linux_amd64.zip
+unzip -u packer_1.7.3_linux_amd64.zip
 sudo cp packer /usr/local/bin
-rm -rf /tmp/packer*
+sudo rm -rf /tmp/packer*
 cd ..
