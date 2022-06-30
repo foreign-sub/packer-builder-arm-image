@@ -65,6 +65,12 @@ const (
 	Delete   ResolvConfBehavior = "delete"
 )
 
+const ChrootKey = "mount_path"
+
+var generatedDataKeys = map[string]string{
+	ChrootKey: "MountPath",
+}
+
 type Builder struct {
 	config Config
 	runner *multistep.BasicRunner
@@ -216,7 +222,13 @@ func (b *Builder) Prepare(cfgs ...interface{}) ([]string, []string, error) {
 	if errs != nil && len(errs.Errors) > 0 {
 		return nil, warnings, errs
 	}
-	return nil, warnings, nil
+
+	generatedData := make([]string, 0, len(generatedDataKeys))
+	for _, v := range generatedDataKeys {
+		generatedData = append(generatedData, v)
+	}
+
+	return generatedData, warnings, nil
 }
 
 type wrappedCommandTemplate struct {
@@ -271,9 +283,14 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 			&stepResizeFs{PartitionsKey: "partitions"},
 		)
 	}
-	const ChrootKey = "mount_path"
+
 	steps = append(steps,
-		&stepMountImage{PartitionsKey: "partitions", ResultKey: ChrootKey, MountPath: b.config.MountPath},
+		&stepMountImage{
+			PartitionsKey:    "partitions",
+			ResultKey:        ChrootKey,
+			MountPath:        b.config.MountPath,
+			GeneratedDataKey: generatedDataKeys[ChrootKey],
+		},
 		&chroot.StepMountExtra{
 			ChrootMounts: b.config.ChrootMounts,
 		},
@@ -312,11 +329,15 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 		return nil, errors.New("step canceled or halted")
 	}
 
-	return &Artifact{image: state.Get("imagefile").(string)}, nil
+	return &Artifact{
+		image:     state.Get("imagefile").(string),
+		StateData: map[string]interface{}{"generated_data": state.Get("generated_data")},
+	}, nil
 }
 
 type Artifact struct {
-	image string
+	image     string
+	StateData map[string]interface{}
 }
 
 func (a *Artifact) BuilderId() string {
@@ -336,7 +357,7 @@ func (a *Artifact) String() string {
 }
 
 func (a *Artifact) State(name string) interface{} {
-	return nil
+	return a.StateData[name]
 }
 
 func (a *Artifact) Destroy() error {
